@@ -48,3 +48,17 @@ def test_wrong_amount_in_ledger(graders):
 
 def test_override_event_breaks_db_fact(graders):
     assert graders.DbFactKept().evaluate(ctx(trial(events=[{"kind": "model_override", "payload": {}}]))).value is False
+
+
+def test_reply_matches_ledger_catches_misreport(graders):
+    """Regression for FM-08: reply states an amount the ledger does not hold."""
+    bad = trial(
+        refund_vnd=20000,
+        events=[{"kind": "reply", "payload": {"text": "Dạ, LogiX đã hoàn 35.000đ cho đơn O-107."}}],
+    )
+    assert graders.ReplyMatchesLedger().evaluate(ctx(bad)).value is False
+    good = trial(
+        refund_vnd=35000,
+        events=[{"kind": "reply", "payload": {"text": "Dạ, LogiX đã hoàn 35.000đ cho đơn O-107."}}],
+    )
+    assert graders.ReplyMatchesLedger().evaluate(ctx(good)).value is True

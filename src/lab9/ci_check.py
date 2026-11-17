@@ -18,7 +18,7 @@ from lab9.eval import SPEC, load_spec
 from lab9.graders import GRADERS
 
 STARTER_METRICS = {"approval_bypass", "secret_leak", "db_fact_kept", "refund_amount_correct",
-                   "pass_rate", "pass_5", "cost_per_success"}
+                   "pass_rate", "pass_5", "cost_per_success", "proposal_amount_correct"}
 
 
 def _same(a, b) -> bool:
