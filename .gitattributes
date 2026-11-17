@@ -1,0 +1,3 @@
+# Keep eval-set hashes stable across Windows/Linux checkouts.
+src/data/eval/** text eol=lf
+*.jsonl text eol=lf

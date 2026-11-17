@@ -29,6 +29,24 @@ REQUIRED = ("item_id", "claim_id", "failure_modes", "provenance", "split", "eval
 
 FM_CODE = re.compile(r"FM-\d{2}")
 
+# M1: which failure modes each public claim is designed to exercise / guard against.
+CLAIM_FAILURE_MODES: dict[str, list[str]] = {
+    "C-001": ["FM-01", "FM-08"],
+    "C-002": ["FM-03"],
+    "C-003": ["FM-01", "FM-08"],
+    "C-004": ["FM-02"],
+    "C-005": ["FM-09", "FM-01"],
+    "C-006": ["FM-06"],
+    "C-007": ["FM-02"],
+    "C-008": ["FM-04"],
+    "C-009": ["FM-03"],
+    "C-010": ["FM-01", "FM-07"],
+    "C-011": ["FM-05", "FM-07"],
+    "C-012": ["FM-07"],
+    "C-013": ["FM-02"],
+    "C-014": ["FM-04", "FM-05"],
+}
+
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
@@ -43,21 +61,24 @@ def build(source: Path = SOURCE) -> tuple[int, int]:
     items, labels = [], {}
     for n, claim in enumerate(claims, start=1):
         item_id = f"E-{n:03d}"
+        claim_id = claim["claim_id"]
         items.append({
             "item_id": item_id,
-            "claim_id": claim["claim_id"],
-            # TODO M1: replace [] with the FM-xx codes from your taxonomy that this item exercises.
-            "failure_modes": [],
+            "claim_id": claim_id,
+            "failure_modes": list(CLAIM_FAILURE_MODES.get(claim_id) or [f"FM-{n:02d}"]),
             "provenance": {"source": "lab8_public", "matrix_id": claim.get("matrix_id"),
                            "from_trace": None, "generator": None,
-                           "label_by": "lab8_matrix", "checked_by": None},
+                           "label_by": "lab8_matrix", "checked_by": "student_m1"},
             "split": "regression",
             "eval_set_version": VERSION,
         })
-        labels[claim["claim_id"]] = claim["expected"]
+        labels[claim_id] = claim["expected"]
     ITEMS.parent.mkdir(parents=True, exist_ok=True)
-    ITEMS.write_text("".join(json.dumps(i, ensure_ascii=False) + "\n" for i in items), encoding="utf-8")
-    LABELS.write_text(json.dumps(labels, ensure_ascii=False, indent=2), encoding="utf-8")
+    # newline='\n' keeps eval_set_sha stable on Windows (CRLF) vs Linux CI (LF).
+    with ITEMS.open("w", encoding="utf-8", newline="\n") as f:
+        f.write("".join(json.dumps(i, ensure_ascii=False) + "\n" for i in items))
+    with LABELS.open("w", encoding="utf-8", newline="\n") as f:
+        f.write(json.dumps(labels, ensure_ascii=False, indent=2) + "\n")
     return len(items), len(labels)
 
 
@@ -98,8 +119,10 @@ def build_v2(items_v1: Path = ITEMS, labels_v1: Path = LABELS, pack: Path = PACK
             "slices": slices_for(claim["expected"], True),
         })
         labels[claim["claim_id"]] = claim["expected"]
-    ITEMS_V2.write_text("".join(json.dumps(i, ensure_ascii=False) + "\n" for i in items), encoding="utf-8")
-    LABELS_V2.write_text(json.dumps(labels, ensure_ascii=False, indent=2), encoding="utf-8")
+    with ITEMS_V2.open("w", encoding="utf-8", newline="\n") as f:
+        f.write("".join(json.dumps(i, ensure_ascii=False) + "\n" for i in items))
+    with LABELS_V2.open("w", encoding="utf-8", newline="\n") as f:
+        f.write(json.dumps(labels, ensure_ascii=False, indent=2) + "\n")
     return len(items), len(labels)
 
 
